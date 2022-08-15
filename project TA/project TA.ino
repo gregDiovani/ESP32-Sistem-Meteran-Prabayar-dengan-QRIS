@@ -2,19 +2,24 @@
 #include <LiquidCrystal_I2C.h>
 #include <WiFi.h>
 #include <ArduinoJson.h>
+#include <HTTPClient.h>
 
 
-
-const char* ssid = "REPLACE_WITH_YOUR_SSID";
-const char* password = "REPLACE_WITH_YOUR_PASSWORD";
+const char* ssid = "KAKA";
+const char* password = "kokomong66";
 
 //Your Domain name with URL path or IP address with path
-const char* host = "https://gregorio.neojt.com";
+
+ String serverName = "https://gregorio.neojt.com/qris_cek_statis.php?external_id=K01";
 
 
-unsigned long timer = 0;
-int interval = 15000;
-const int httpPort = 80;
+unsigned long lastTime = 0;
+// Timer set to 10 minutes (600000)
+//unsigned long timerDelay = 600000;
+// Set timer to 5 seconds (5000)
+unsigned long timerDelay = 5000;
+
+
 WiFiClient client;
 
 
@@ -54,7 +59,7 @@ void setup() {
 /////-------------------------------------------------/////
 
 
-
+     pzem.resetEnergy();
 
 /////--------------- LCD Init-----------------------/////
     lcd.init();
@@ -83,7 +88,7 @@ void setup() {
 
 void loop() {
 
-  
+  readJson();    
    digitalWrite(relay, LOW);
         
     
@@ -138,43 +143,36 @@ void bacaPzem() {
 
 void readJson(){
 
-  if ((millis() - timer) >= interval || timer == 0) {
-    timer = millis();
-    client.stop();
-    if (client.connect(host, httpPort)) {
-      String url = "/qris_cek_statis.php?external_id=K01";
-      Serial.println("connection is successful, Trying to load the JSON data... ");
-      client.print(String("GET ") + url + " HTTP/1.1\r\n" + "Host: " + host + "\r\n" + "User-Agent: NodeMCU\r\n" + "Connection: close\r\n\r\n");
-      while (client.connected()) {
-        String line = client.readStringUntil('\n'); //HTTP HEADER
-        //Serial.println(line);
-        if (line == "\r") {
-          break;
-        }
-      }
-      DynamicJsonDocument doc(512);
-      String line = client.readString(); //PAYLOAD
-      Serial.println(line);
-      deserializeJson(doc, line);
-      JsonObject obj = doc.as<JsonObject>();
+  if ((millis() - lastTime) > timerDelay) {
+    //Check WiFi connection status
+    if(WiFi.status()== WL_CONNECTED){
+      HTTPClient http;
 
-
-
-      float hystereza = obj[String("Hysteresis")];
-      float cielova_teplota = obj[String("Target_Temperature")];
-      float actual_temperature = obj[String("Actual_Temperature")];
-
-
+      String serverPath = serverName;
       
-      Serial.print("Hystereza: ");
-      Serial.println(hystereza);
-      Serial.print("Cielova teplota: ");
-      Serial.println(cielova_teplota);
-      Serial.print("Namerana (aktualna) teplota: ");
-      Serial.println(actual_temperature);
-    } else if (!client.connect(host, httpPort)) {
-      Serial.println("Nepodarilo sa pripojenie k termostatu, ani nacitanie JSON data");
+      // Your Domain name with URL path or IP address with path
+      http.begin(serverPath.c_str());
+      
+      // Send HTTP GET request
+      int httpResponseCode = http.GET();
+      
+      if (httpResponseCode>0) {
+        Serial.print("HTTP Response code: ");
+        Serial.println(httpResponseCode);
+        String payload = http.getString();
+        
+        
+      else {
+        Serial.print("Error code: ");
+        Serial.println(httpResponseCode);
+      }
+      // Free resources
+      http.end();
     }
+    else {
+      Serial.println("WiFi Disconnected");
+    }
+    lastTime = millis();
   }
 
 }
