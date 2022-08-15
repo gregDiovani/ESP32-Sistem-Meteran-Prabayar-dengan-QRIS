@@ -1,5 +1,26 @@
 #include <PZEM004Tv30.h>
 #include <LiquidCrystal_I2C.h>
+#include <WiFi.h>
+#include <ArduinoJson.h>
+
+
+
+const char* ssid = "REPLACE_WITH_YOUR_SSID";
+const char* password = "REPLACE_WITH_YOUR_PASSWORD";
+
+//Your Domain name with URL path or IP address with path
+const char* host = "https://gregorio.neojt.com";
+
+
+unsigned long timer = 0;
+int interval = 15000;
+const int httpPort = 80;
+WiFiClient client;
+
+
+
+
+/////---------------------------------
 
 /* Hardware Serial2 is only available on certain boards.
  * For example the Arduino MEGA 2560
@@ -10,7 +31,11 @@ PZEM004Tv30 pzem(Serial2, 16, 17);
 PZEM004Tv30 pzem(Serial2);
 #endif
 
-const int relay = 26;
+
+
+const int relay = 26; ///  Relay
+
+/// LCD I2C 
 int lcdColumns = 16;
 int lcdRows = 2;
 
@@ -19,38 +44,63 @@ LiquidCrystal_I2C lcd(0x27, lcdColumns, lcdRows);
 
 
 void setup() {
-  
+
+    Serial.begin(115200);
+    Serial2.begin(9600,SERIAL_8N1, 16, 17);
+
+
+/////--------------- Deklarasi PIN-----------------------/////
     pinMode(relay, OUTPUT);
+/////-------------------------------------------------/////
+
+
+
+
+/////--------------- LCD Init-----------------------/////
     lcd.init();
     lcd.backlight();
+/////-------------------------------------------------/////
 
+
+
+    WiFi.begin(ssid, password);
+    Serial.println("Connecting...");
+
+    while (WiFi.status() != WL_CONNECTED) {
+    bacaPzem();
+    delay(500);
+    Serial.print(".");
+    }
+
+    Serial.println("");
+    Serial.print("Connected to WiFi network with IP Address: ");
+    Serial.println(WiFi.localIP());
     
+   
 
-    // Uncomment in order to reset the internal energy counter
-    // pzem.resetEnergy()
+
 }
 
 void loop() {
 
-    
-   lcd.setCursor(0, 0);
-   lcd.print("Hello, world!"); 
-   
+  
    digitalWrite(relay, LOW);
         
-    Serial.print("Custom Address:");
-    Serial.println(pzem.readAddress(), HEX);
+    
+}
 
-    // Read the data from the sensor
-    float voltage = pzem.voltage();
+
+void bacaPzem() {
+
+   // Read the data from the sensor
+    int voltage = pzem.voltage();
     float current = pzem.current();
     float power = pzem.power();
     float energy = pzem.energy();
     float frequency = pzem.frequency();
     float pf = pzem.pf();
 
-    // Check if the data is valid
-    if(isnan(voltage)){
+   if(isnan(voltage)){
         Serial.println("Error reading voltage");
     } else if (isnan(current)) {
         Serial.println("Error reading current");
@@ -65,15 +115,66 @@ void loop() {
     } else {
 
         // Print the values to the Serial console
-        Serial.print("Voltage: ");      Serial.print(voltage);      Serial.println("V");
-        Serial.print("Current: ");      Serial.print(current);      Serial.println("A");
-        Serial.print("Power: ");        Serial.print(power);        Serial.println("W");
-        Serial.print("Energy: ");       Serial.print(energy,3);     Serial.println("kWh");
-        Serial.print("Frequency: ");    Serial.print(frequency, 1); Serial.println("Hz");
-        Serial.print("PF: ");           Serial.println(pf);
 
+        lcd.setCursor(0, 0);
+        lcd.print(String(voltage) + String("V")); 
+
+        lcd.setCursor(5, 0);
+        lcd.print(String(current) + String("A"));
+
+        lcd.setCursor(11, 0);
+        lcd.print(String(power,1) + String("W")); 
+ 
+
+        lcd.setCursor(0, 1);
+        lcd.print(String(energy,3) + String("kWh")); 
+
+         lcd.setCursor(0, 1);
+        lcd.print(String(energy,3) + String("kWh")); 
+
+    
     }
+}
 
-    Serial.println();
-    delay(2000);
+void readJson(){
+
+  if ((millis() - timer) >= interval || timer == 0) {
+    timer = millis();
+    client.stop();
+    if (client.connect(host, httpPort)) {
+      String url = "/qris_cek_statis.php?external_id=K01";
+      Serial.println("connection is successful, Trying to load the JSON data... ");
+      client.print(String("GET ") + url + " HTTP/1.1\r\n" + "Host: " + host + "\r\n" + "User-Agent: NodeMCU\r\n" + "Connection: close\r\n\r\n");
+      while (client.connected()) {
+        String line = client.readStringUntil('\n'); //HTTP HEADER
+        //Serial.println(line);
+        if (line == "\r") {
+          break;
+        }
+      }
+      DynamicJsonDocument doc(512);
+      String line = client.readString(); //PAYLOAD
+      Serial.println(line);
+      deserializeJson(doc, line);
+      JsonObject obj = doc.as<JsonObject>();
+
+
+
+      float hystereza = obj[String("Hysteresis")];
+      float cielova_teplota = obj[String("Target_Temperature")];
+      float actual_temperature = obj[String("Actual_Temperature")];
+
+
+      
+      Serial.print("Hystereza: ");
+      Serial.println(hystereza);
+      Serial.print("Cielova teplota: ");
+      Serial.println(cielova_teplota);
+      Serial.print("Namerana (aktualna) teplota: ");
+      Serial.println(actual_temperature);
+    } else if (!client.connect(host, httpPort)) {
+      Serial.println("Nepodarilo sa pripojenie k termostatu, ani nacitanie JSON data");
+    }
+  }
+
 }
