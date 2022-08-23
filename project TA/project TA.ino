@@ -3,6 +3,16 @@
 #include <WiFi.h>
 #include <ArduinoJson.h>
 #include <HTTPClient.h>
+#include <Preferences.h>
+
+Preferences preferences;
+
+
+
+
+
+
+
 
 
 const char* ssid = "KAKA";
@@ -36,6 +46,7 @@ PZEM004Tv30 pzem(Serial2, 16, 17);
 PZEM004Tv30 pzem(Serial2);
 #endif
 
+  
 
 
 const int relay = 26; ///  Relay
@@ -48,6 +59,11 @@ int lcdRows = 2;
 LiquidCrystal_I2C lcd(0x27, lcdColumns, lcdRows);  
 
 
+String getNominal;
+
+    // String part02;
+    // String part03;
+
 void setup() {
 
     Serial.begin(115200);
@@ -59,38 +75,19 @@ void setup() {
 /////-------------------------------------------------/////
 
 
-     pzem.resetEnergy();
-
 /////--------------- LCD Init-----------------------/////
     lcd.init();
     lcd.backlight();
 /////-------------------------------------------------/////
-
-
+  
 
     WiFi.begin(ssid, password);
-    Serial.println("Connecting...");
-
-    while (WiFi.status() != WL_CONNECTED) {
-    bacaPzem();
-    delay(500);
-    Serial.print(".");
-    }
-
-    Serial.println("");
-    Serial.print("Connected to WiFi network with IP Address: ");
-    Serial.println(WiFi.localIP());
     
-   
-
-
 }
 
 void loop() {
-
+  bacaPzem();
   readJson();    
-   digitalWrite(relay, LOW);
-        
     
 }
 
@@ -98,12 +95,14 @@ void loop() {
 void bacaPzem() {
 
    // Read the data from the sensor
-    int voltage = pzem.voltage();
-    float current = pzem.current();
-    float power = pzem.power();
-    float energy = pzem.energy();
-    float frequency = pzem.frequency();
-    float pf = pzem.pf();
+     int voltage = pzem.voltage();
+     float current = pzem.current();
+     float power = pzem.power();
+     float energy = pzem.energy();
+     float frequency = pzem.frequency();
+     float pf = pzem.pf();
+     float sisakWh = Transaksi(getNominal) - energy;
+     
 
    if(isnan(voltage)){
         Serial.println("Error reading voltage");
@@ -119,29 +118,60 @@ void bacaPzem() {
         Serial.println("Error reading power factor");
     } else {
 
-        // Print the values to the Serial console
-
+                    
         lcd.setCursor(0, 0);
         lcd.print(String(voltage) + String("V")); 
 
         lcd.setCursor(5, 0);
         lcd.print(String(current) + String("A"));
 
-        lcd.setCursor(11, 0);
-        lcd.print(String(power,1) + String("W")); 
- 
-
         lcd.setCursor(0, 1);
-        lcd.print(String(energy,3) + String("kWh")); 
+        lcd.print(String("Sisa:") + String(sisakWh)) + String("kWh"); 
 
-         lcd.setCursor(0, 1);
-        lcd.print(String(energy,3) + String("kWh")); 
 
+        //// Logika kWh saat akan habis
+        if(sisakWh < 3){          
+        ///// Buzzer Berbunyi dan led Menyala
+        int test;
+
+        }else if(sisakWh == 0){
+          ////  Buzzer berbunyi dan led mayala
+          pzem.resetEnergy();
+          digitalWrite(relay, HIGH);
+
+          
+        }
     
     }
 }
 
+float Transaksi(String nominal){
+
+float total =+  nominal.toFloat() / 1400;     
+return total;
+  
+}
+
+String getValue(String data, char separator, int index)
+{
+  int found = 0;
+  int strIndex[] = {0, -1};
+  int maxIndex = data.length()-1;
+
+  for(int i=0; i<=maxIndex && found<=index; i++){
+    if(data.charAt(i)==separator || i==maxIndex){
+        found++;
+        strIndex[0] = strIndex[1]+1;
+        strIndex[1] = (i == maxIndex) ? i+1 : i;
+    }
+  }
+
+  return found>index ? data.substring(strIndex[0], strIndex[1]) : "";
+}
+
 void readJson(){
+  
+   
 
   if ((millis() - lastTime) > timerDelay) {
     //Check WiFi connection status
@@ -157,11 +187,14 @@ void readJson(){
       int httpResponseCode = http.GET();
       
       if (httpResponseCode>0) {
-        Serial.print("HTTP Response code: ");
-        Serial.println(httpResponseCode);
         String payload = http.getString();
+         getNominal = getValue(payload,',',0);
+         Serial.println("Nominal:"+ getNominal);
         
-        
+        // part02 = getValue(payload,',',1);
+        // part03 = getValue(payload,',',2);
+                
+      }
       else {
         Serial.print("Error code: ");
         Serial.println(httpResponseCode);
@@ -176,3 +209,6 @@ void readJson(){
   }
 
 }
+
+
+
