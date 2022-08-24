@@ -3,7 +3,7 @@
 #include <WiFi.h>
 #include <ArduinoJson.h>
 #include <HTTPClient.h>
-#include <EEPROM.h>
+
 
 
 
@@ -51,21 +51,22 @@ int lcdRows = 2;
 LiquidCrystal_I2C lcd(0x27, lcdColumns, lcdRows);  
 
 
-String getNominal;
-
-    // String part02;
-    // String part03;
+ String getNominal;
+ String idKamar = "K01";
+ float pemakaianDaya;
+ double rupiah;
 
 void setup() {
 
   Serial.begin(115200);
   Serial2.begin(9600,SERIAL_8N1, 16, 17);
-
-
+  
+   pemakaianDaya = pzem.energy();
 
 
 /////--------------- Deklarasi PIN-----------------------/////
   pinMode(relay, OUTPUT);
+  digitalWrite(relay, HIGH) ; 
 /////-------------------------------------------------/////
 
 
@@ -80,9 +81,55 @@ void setup() {
 }
 
 void loop() {
+  readJson(); 
   bacaPzem();
-  readJson();    
     
+  if( getNominal.toDouble() <= 0)
+  {
+          ////  Buzzer berbunyi dan led mayala
+          pzem.resetEnergy();
+          digitalWrite(relay, HIGH);
+  }else
+  
+  {
+      digitalWrite(relay, LOW);
+  
+    if(pzem.energy() > pemakaianDaya ){
+
+    
+    
+
+       // rupiah = (pzem.power() - pemakaianDaya) * 3660 / 1000 / (millis() - lastTime)  * 1400 ;        
+        rupiah = (pzem.energy() - pemakaianDaya) * 1400;    
+        Serial.print("Rp");
+        Serial.println(rupiah);
+  
+    
+        //Check WiFi connection status
+        if(WiFi.status()== WL_CONNECTED){
+          HTTPClient http;
+
+     
+           // String postData = (String)"id_kamar=" + idKamar  + "&ammount_rp=" + rupiah; 
+
+          http.begin("http://gregorio.neojt.com/t_pakai.php?id_kamar="+idKamar+"&amount_rp="+rupiah);
+          http.addHeader("Content-Type", "application/x-www-form-urlencoded");
+
+          auto httpCode = http.GET();
+    
+        } else {
+          Serial.println("WiFi Disconnected");
+        }
+    
+
+        pemakaianDaya = pzem.energy();
+
+
+        
+      
+    }
+     
+  }
 }
 
 
@@ -110,32 +157,27 @@ void bacaPzem() {
         Serial.println("Error reading frequency");
     } else if (isnan(pf)) {
         Serial.println("Error reading power factor");
+         
+      
     } else {
 
-       lcd.setCursor(0, 0);
+        lcd.setCursor(0, 0);
         lcd.print(String(voltage) + String("V")); 
 
         lcd.setCursor(5, 0);
         lcd.print(String(current) + String("A"));
 
         lcd.setCursor(0, 1);
-        lcd.print("Sisa:" + String(sisakWh) + " kWh"); 
+        lcd.print("Sisa:" + String(sisakWh) + "kWh");
 
         //// Logika kWh saat akan habis
         if(sisakWh < 3){          
         ///// Buzzer Berbunyi dan led Menyala
         int test;
 
-        }else if(sisakWh == 0){
-          ////  Buzzer berbunyi dan led mayala
-          pzem.resetEnergy();
-          digitalWrite(relay, HIGH);
-          
-        } else if(sisakWh < 0){
-
-           sisakWh = 0;
-
         }
+        
+         
     
     }
 }
@@ -183,9 +225,7 @@ void readJson(){
         String payload = http.getString();
          getNominal = getValue(payload,',',0);
          Serial.println("Nominal:"+ getNominal);
-        
-        // part02 = getValue(payload,',',1);
-        // part03 = getValue(payload,',',2);
+         
                 
       }
       else {
@@ -203,39 +243,7 @@ void readJson(){
 
 }
 
-void kirim_data() {
 
-  if ((millis() - lastTime) > timerDelay) {
-    //Check WiFi connection status
-    if(WiFi.status()== WL_CONNECTED){
-    HTTPClient http;
-
-
-    // String postData = (String)"tegangan=" + tegangan + "&arus=" + arus
-
-    http.begin("http://192.168.43.140/postesp8266/api.php");
-    http.addHeader("Content-Type", "application/x-www-form-urlencoded");
-
-    auto httpCode = http.POST(postData);
-    String payload = http.getString();
-
-    Serial.println(postData);
-    Serial.println(payload);
-  
-
-    }
-    else {
-      Serial.println("WiFi Disconnected");
-    }
-    lastTime = millis();
-  }
-
-
-
-
-
-
-}
 
 
 
