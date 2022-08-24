@@ -3,15 +3,7 @@
 #include <WiFi.h>
 #include <ArduinoJson.h>
 #include <HTTPClient.h>
-#include <Preferences.h>
-
-Preferences preferences;
-
-
-
-
-
-
+#include <EEPROM.h>
 
 
 
@@ -66,22 +58,24 @@ String getNominal;
 
 void setup() {
 
-    Serial.begin(115200);
-    Serial2.begin(9600,SERIAL_8N1, 16, 17);
+  Serial.begin(115200);
+  Serial2.begin(9600,SERIAL_8N1, 16, 17);
+
+
 
 
 /////--------------- Deklarasi PIN-----------------------/////
-    pinMode(relay, OUTPUT);
+  pinMode(relay, OUTPUT);
 /////-------------------------------------------------/////
 
 
 /////--------------- LCD Init-----------------------/////
-    lcd.init();
-    lcd.backlight();
+  lcd.init();
+  lcd.backlight();
 /////-------------------------------------------------/////
   
 
-    WiFi.begin(ssid, password);
+  WiFi.begin(ssid, password);
     
 }
 
@@ -118,16 +112,14 @@ void bacaPzem() {
         Serial.println("Error reading power factor");
     } else {
 
-                    
-        lcd.setCursor(0, 0);
+       lcd.setCursor(0, 0);
         lcd.print(String(voltage) + String("V")); 
 
         lcd.setCursor(5, 0);
         lcd.print(String(current) + String("A"));
 
         lcd.setCursor(0, 1);
-        lcd.print(String("Sisa:") + String(sisakWh)) + String("kWh"); 
-
+        lcd.print("Sisa:" + String(sisakWh) + " kWh"); 
 
         //// Logika kWh saat akan habis
         if(sisakWh < 3){          
@@ -138,8 +130,11 @@ void bacaPzem() {
           ////  Buzzer berbunyi dan led mayala
           pzem.resetEnergy();
           digitalWrite(relay, HIGH);
-
           
+        } else if(sisakWh < 0){
+
+           sisakWh = 0;
+
         }
     
     }
@@ -147,8 +142,8 @@ void bacaPzem() {
 
 float Transaksi(String nominal){
 
-float total =+  nominal.toFloat() / 1400;     
-return total;
+  float total =+  nominal.toFloat() / 1400;     
+  return total;
   
 }
 
@@ -171,8 +166,6 @@ String getValue(String data, char separator, int index)
 
 void readJson(){
   
-   
-
   if ((millis() - lastTime) > timerDelay) {
     //Check WiFi connection status
     if(WiFi.status()== WL_CONNECTED){
@@ -207,6 +200,40 @@ void readJson(){
     }
     lastTime = millis();
   }
+
+}
+
+void kirim_data() {
+
+  if ((millis() - lastTime) > timerDelay) {
+    //Check WiFi connection status
+    if(WiFi.status()== WL_CONNECTED){
+    HTTPClient http;
+
+
+    // String postData = (String)"tegangan=" + tegangan + "&arus=" + arus
+
+    http.begin("http://192.168.43.140/postesp8266/api.php");
+    http.addHeader("Content-Type", "application/x-www-form-urlencoded");
+
+    auto httpCode = http.POST(postData);
+    String payload = http.getString();
+
+    Serial.println(postData);
+    Serial.println(payload);
+  
+
+    }
+    else {
+      Serial.println("WiFi Disconnected");
+    }
+    lastTime = millis();
+  }
+
+
+
+
+
 
 }
 
