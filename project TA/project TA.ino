@@ -8,8 +8,8 @@
 double previousNominal;
 double nominalNow;
 
-const char* ssid = "PCU_Sistem_Kontrol";
-const char* password = "lasikonn";
+const char* ssid = "KAKA";
+const char* password = "kokomong66";
 
 //Your Domain name with URL path or IP address with path
 
@@ -32,8 +32,15 @@ WiFiClient client;
 int buzzerState = HIGH;             // ledState used to set the LED
 const long onDuration = 500;// OFF time for LED
 const long offDuration = 10000;// ON time for LED  
-
 long rememberTime=0;// this is used by the code
+
+
+
+//// Untuk LED
+int ledState = HIGH;
+const long onDurationLED = 200;// OFF time for LED
+const long offDurationLED = 500;// ON time for LED  
+long rememberTimeLED=0;// this is used by the code
 
 
 
@@ -51,7 +58,7 @@ PZEM004Tv30 pzem(Serial2);
 #endif
 
   
-
+const int ledMerah = 18;
 const int buzzer = 25;
 const int relay = 26; ///  Relay
 
@@ -79,7 +86,9 @@ void setup() {
 
 /////--------------- Deklarasi PIN-----------------------/////
   pinMode(relay, OUTPUT);
-  pinMode(relay, OUTPUT);
+  pinMode(buzzer, OUTPUT);
+  pinMode(ledMerah, OUTPUT);
+  digitalWrite(ledMerah,ledState); 
   digitalWrite(buzzer, HIGH);
   digitalWrite(relay, HIGH);
   
@@ -100,9 +109,10 @@ void loop() {
   readJson(); 
   bacaPzem();
     
-  if( getNominal.toDouble() <= 0)
+  if( getNominal.toDouble() <= 2)
   {
           alarm();
+          ledAlarm();
           ////  Buzzer berbunyi dan led mayala
           pzem.resetEnergy();
           digitalWrite(relay, HIGH);
@@ -343,10 +353,6 @@ float ambilNominal(){
 }
 
 void alarm(){
-
-
-
-
   if( buzzerState == HIGH )
  {
     if( (millis()- rememberTime) >= onDuration){   
@@ -364,10 +370,30 @@ void alarm(){
 
  // Robojax LED blink with millis()
  digitalWrite(buzzer,buzzerState);// turn the LED ON or OFF
-                    // wait for a second  
+                    // wait for a second
+
+  
 }
 
+void ledAlarm(){
 
 
+  if( ledState == HIGH )
+ {
+    if( (millis()- rememberTimeLED) >= onDurationLED){   
+    ledState = LOW;// change the state of LED
+    rememberTimeLED=millis();// remember Current millis() time
+    }
+ }
+ else
+ {   
+    if( (millis()- rememberTimeLED) >= offDurationLED){     
+    ledState =HIGH;// change the state of LED
+    rememberTimeLED=millis();// remember Current millis() time
+    }
+ }
 
-
+ // Robojax LED blink with millis()
+ digitalWrite(ledMerah,ledState);// turn the LED ON or OFF
+                    // wait for a second
+}
