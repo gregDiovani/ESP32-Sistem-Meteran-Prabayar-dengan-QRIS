@@ -5,14 +5,43 @@
 #include <HTTPClient.h>
 
 
+/* 
+ * 
+  Buzzer: Buzzer Active LOW
+  LED ACTIVE LOW
+*/
+
+
+/* 
+ * Deklrasi PIN
+*/
+const int ledHijau = 19;
+const int ledMerah = 18;
+const int buzzer = 25;
+const int relay = 26;
+int lcdColumns = 16;
+int lcdRows = 2;
+
+
+/* 
+ * Global Variable
+*/
 double previousNominal;
 double nominalNow;
+
+String getNominal;
+String idKamar = "K01";
+
+float pemakaianDaya;
+double rupiah;
+
 
 const char* ssid = "KAKA";
 const char* password = "kokomong66";
 
 // Server ke Xendit
 String serverName = "https://gregorio.neojt.com/qris_cek_statis.php?external_id=K01";
+
 
 
 
@@ -26,15 +55,13 @@ const long interval = 1000;
 WiFiClient client;
 
 
-
 /* 
- * Keperluan Buzzer 
+ * Keperluan Buzzer saat akan habis
 */
 int buzzerState = HIGH;
 const long onDuration = 500;
 const long offDuration = 10000;
-long rememberTime = 0;  //
-
+long rememberTime = 0;  
 
 
 /* 
@@ -57,30 +84,18 @@ PZEM004Tv30 pzem(Serial2, 16, 17);
 PZEM004Tv30 pzem(Serial2);
 #endif
 
-const int ledHijau = 19;
-const int ledMerah = 18;
-const int buzzer = 25;
-const int relay = 26;  
 
-/// LCD I2C
-int lcdColumns = 16;
-int lcdRows = 2;
 
 // Set the LCD address to 0x27 for a 16 chars and 2 line display
 LiquidCrystal_I2C lcd(0x27, lcdColumns, lcdRows);
 
 
-String getNominal;
-String idKamar = "K01";
-float pemakaianDaya;
-double rupiah;
+
 
 void setup() {
 
   Serial.begin(115200);
   Serial2.begin(9600, SERIAL_8N1, 16, 17);
-
-
 
   pemakaianDaya = pzem.energy();
   previousNominal = ambilNominal();
@@ -116,6 +131,7 @@ void setup() {
 }
 
 void loop() {
+
   readJson();
   bacaPzem();
 
@@ -125,12 +141,13 @@ void loop() {
     ledAlarm();
 
 
-
   } else if (getNominal.toDouble() <= 0) {
 
-    digitalWrite(ledHijau, HIGH);
+    digitalWrite(ledHijau, HIGH); /// LED Hijau Mati
+    ledAlarm();
     pzem.resetEnergy();
-    digitalWrite(relay, HIGH);
+    digitalWrite(relay, HIGH); /// relay terputus
+    digitalWrite(ledMerah, LOW);
 
   } else
 
@@ -355,19 +372,18 @@ float ambilNominal() {
 void alarm() {
   if (buzzerState == HIGH) {
     if ((millis() - rememberTime) >= onDuration) {
-      buzzerState = LOW;        
-      rememberTime = millis();  
+      buzzerState = LOW;
+      rememberTime = millis();
     }
   } else {
     if ((millis() - rememberTime) >= offDuration) {
-      buzzerState = HIGH;       
-      rememberTime = millis();  
+      buzzerState = HIGH;
+      rememberTime = millis();
     }
   }
 
- 
-  digitalWrite(buzzer, buzzerState);  
-                                      
+
+  digitalWrite(buzzer, buzzerState);
 }
 
 void ledAlarm() {
@@ -375,17 +391,16 @@ void ledAlarm() {
 
   if (ledState == HIGH) {
     if ((millis() - rememberTimeLED) >= onDurationLED) {
-      ledState = LOW;              
-      rememberTimeLED = millis();  
+      ledState = LOW;
+      rememberTimeLED = millis();
     }
   } else {
     if ((millis() - rememberTimeLED) >= offDurationLED) {
-      ledState = HIGH;             
-      rememberTimeLED = millis();  
+      ledState = HIGH;
+      rememberTimeLED = millis();
     }
   }
 
-  
-  digitalWrite(ledMerah, ledState);  
-                                     
+
+  digitalWrite(ledMerah, ledState);
 }
