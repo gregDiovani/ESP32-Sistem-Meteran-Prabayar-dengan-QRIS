@@ -61,7 +61,7 @@ PZEM004Tv30 pzem(Serial2);
 
 
 unsigned long lastTime = 0;
-unsigned long timerDelay = 10000;
+unsigned long timerDelay = 5000;
 
 
 /* 
@@ -128,10 +128,9 @@ void readSensorPZEM() {
 
 
 
-    }else{
+    }
 
-    sisakWh =  ConvertTbalancetoKwh(getBalance) - energy;      
-
+      sisakWh =  ConvertTbalancetoKwh(getBalance) - energy;      
       lcd.clear();      
       digitalWrite(ledBiru, LOW);
       lcd.setCursor(0, 0);
