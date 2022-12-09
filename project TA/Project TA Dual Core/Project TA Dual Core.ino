@@ -74,190 +74,7 @@ float voltage, current, power, energy, frequency, pf, sisakWh; /// Variable untu
 
 
 
-void readSensorPZEM() {
 
-  voltage = pzem.voltage();
-  current = pzem.current();
-  power = pzem.power();
-  energy = pzem.energy();
-  frequency = pzem.frequency();
-  pf = pzem.pf();
-
-  // Check if the data is valid
-  if (isnan(voltage)) {
-    voltage = 0.0;
-  } else if (isnan(current)) {
-    current = 0.0;
-  } else if (isnan(power)) {
-    power = 0.0;
-    } else if (isnan(energy)) {
-        Serial.println("Error reading energy");
-    } else if (isnan(frequency)) {
-        Serial.println("Error reading frequency");
-    } else if (isnan(pf)) {
-        Serial.println("Error reading power factor");
-  } else {
-
-
-    if (WiFi.status() == WL_CONNECTED) {
-
-    decrementkwh();
-      
-    sisakWh =  ConvertTbalancetoKwh(getBalance);
-
-    digitalWrite(ledBiru, HIGH);
-    lcd.clear();
-    lcd.setCursor(0, 0);
-    lcd.print(String("ONLINE ")  + String(power) + String(" W") );
-    lcd.setCursor(0, 1);
-    lcd.print("Pulsa:" + String(sisakWh, 3) + " kWh");
-
-
-
-    }
-
-      sisakWh =  ConvertTbalancetoKwh(getBalance) - energy;      
-      lcd.clear();      
-      digitalWrite(ledBiru, LOW);
-      lcd.setCursor(0, 0);
-      lcd.print(String("OFFLINE ") + String(power)+ String(" W") );
-      lcd.setCursor(0, 1);
-      lcd.print("Pulsa:" + String(sisakWh, 3) + " kWh");
-
-    }
-
-  
-  ///// Serial  PZEM
-
-    Serial.println("===============================PZEM-004T==================================");
-    Serial.print("Voltage: ");
-    Serial.print(voltage);
-    Serial.println("V");
-    Serial.print("Current: ");
-    Serial.print(current);
-    Serial.println("A");
-    Serial.print("Power: ");
-    Serial.print(power);
-    Serial.println("W");
-    Serial.print("Frequency: ");
-    Serial.print(frequency, 1);
-    Serial.println("Hz");
-    Serial.print("PF: ");
-    Serial.println(pf);
-    Serial.print("Energy: ");
-    Serial.print(energy, 3);
-    Serial.println("kWh");
-    Serial.println("=======================================================================");
-    Serial.println();  
-
-   
-  }
-}
-
-
-
-
-void reconnectWifi() {
-
-const unsigned long CONNECT_TIMEOUT = 120; // Wait 3 minutes to connect to the real AP before trying to boot the local AP
-const unsigned long AP_TIMEOUT = 120; // Wait 3 minutes in the config portal before trying again the original WiFi creds
-
-
-if (  WiFi.status() != WL_CONNECTED)  {
-
-  wc.setConnectTimeout(CONNECT_TIMEOUT);
-  wc.setTimeout(AP_TIMEOUT);
-  wc.autoConnect("ESP32");
-   
-  }
-}
-
-
-void decrementkwh() {
-
-  String idKamar = "K01";
-
-  if (pzem.energy() > pemakaianDaya) {
-
-    nominalPenggunaan = (pzem.energy() - pemakaianDaya) * 1500;
-    Serial.print("Nominal penggunaan: Rp ");
-    Serial.println(nominalPenggunaan);
-  
-      HTTPClient http;
-
-      http.begin("http://gregorio.neojt.com/t_pakai.php?id_kamar=" + idKamar + "&amount_rp=" + nominalPenggunaan);
-      http.addHeader("Content-Type", "application/x-www-form-urlencoded");
-
-       int httpResponseCode = http.GET();
-      
-      if (httpResponseCode>0) {
-        Serial.print("HTTP Response code: ");
-        Serial.println(httpResponseCode);
-       
-      }
-      else {
-        Serial.print("Error code: ");
-        Serial.println(httpResponseCode);
-      }
-
-      
-     // Free resources
-      http.end();
-      
-     
-
-     
-
-      
-      digitalWrite(ledBiru, LOW);
-      delay(200);
-      digitalWrite(ledBiru, HIGH);
-
-
-      pemakaianDaya = energy;
-
-  }
-
-  
-  
-}
-
-
-void runOutput() {
-
-  
-  /* 
- *  Pembatasan daya sebesar 350 W
- */
-
-  ///if (power > 350) digitalWrite(relay, HIGH);  
-
-  /* 
- *  Notifikasi saat rupiah di bawah 1 kwh
- */
-
-   if ( sisakWh <= 1)ledMerahBlink();
-
-
-    
-  if ( sisakWh < 0 ||  sisakWh == 0) {
-    digitalWrite(relay, HIGH);
-    digitalWrite(ledHijau, LOW);
-    ledMerahBlink();    
-    pzem.resetEnergy();
-
-
-  } else {
-
-    digitalWrite(ledHijau, HIGH); /// Led Hijau Menyala
-    digitalWrite(ledMerah, LOW);  /// Led Merah Mati
-    digitalWrite(relay, LOW);
-    digitalWrite(buzzer, LOW);
-  }
-
-
-
-}
 
 
 void setup() {
@@ -435,6 +252,191 @@ void ledMerahBlink() {
 
       digitalWrite(ledMerah, ledState);
     }
+
+
+void readSensorPZEM() {
+
+  voltage = pzem.voltage();
+  current = pzem.current();
+  power = pzem.power();
+  energy = pzem.energy();
+  frequency = pzem.frequency();
+  pf = pzem.pf();
+
+  // Check if the data is valid
+  if (isnan(voltage)) {
+    voltage = 0.0;
+  } else if (isnan(current)) {
+    current = 0.0;
+  } else if (isnan(power)) {
+    power = 0.0;
+    } else if (isnan(energy)) {
+        Serial.println("Error reading energy");
+    } else if (isnan(frequency)) {
+        Serial.println("Error reading frequency");
+    } else if (isnan(pf)) {
+        Serial.println("Error reading power factor");
+  } else {
+
+
+    if (WiFi.status() == WL_CONNECTED) {
+
+    decrementkwh();
+      
+    sisakWh =  ConvertTbalancetoKwh(getBalance);
+
+    digitalWrite(ledBiru, HIGH);
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print(String("ONLINE ")  + String(power) + String(" W") );
+    lcd.setCursor(0, 1);
+    lcd.print("Pulsa:" + String(sisakWh, 3) + " kWh");
+
+
+
+    }
+
+      sisakWh =  ConvertTbalancetoKwh(getBalance) - energy;      
+      lcd.clear();      
+      digitalWrite(ledBiru, LOW);
+      lcd.setCursor(0, 0);
+      lcd.print(String("OFFLINE ") + String(power)+ String(" W") );
+      lcd.setCursor(0, 1);
+      lcd.print("Pulsa:" + String(sisakWh, 3) + " kWh");
+
+    }
+
+  
+  ///// Serial  PZEM
+
+    Serial.println("===============================PZEM-004T==================================");
+    Serial.print("Voltage: ");
+    Serial.print(voltage);
+    Serial.println("V");
+    Serial.print("Current: ");
+    Serial.print(current);
+    Serial.println("A");
+    Serial.print("Power: ");
+    Serial.print(power);
+    Serial.println("W");
+    Serial.print("Frequency: ");
+    Serial.print(frequency, 1);
+    Serial.println("Hz");
+    Serial.print("PF: ");
+    Serial.println(pf);
+    Serial.print("Energy: ");
+    Serial.print(energy, 3);
+    Serial.println("kWh");
+    Serial.println("=======================================================================");
+    Serial.println();  
+
+   
+  }
+}
+
+
+/* 
+ * Melakukan reconnect ke wifi dan meaktifkan WifiManager
+ */  
+
+void reconnectWifi() {
+
+const unsigned long CONNECT_TIMEOUT = 120; // Wait 3 minutes to connect to the real AP before trying to boot the local AP
+const unsigned long AP_TIMEOUT = 120; // Wait 3 minutes in the config portal before trying again the original WiFi creds
+
+
+if (  WiFi.status() != WL_CONNECTED)  {
+
+  wc.setConnectTimeout(CONNECT_TIMEOUT);
+  wc.setTimeout(AP_TIMEOUT);
+  wc.autoConnect("ESP32");
+   
+  }
+}
+
+/* 
+ * Fungsi Decrement kWh
+ */
+void decrementkwh() {
+
+  String idKamar = "Kamar01";
+
+  if (pzem.energy() > pemakaianDaya) {
+
+    nominalPenggunaan = (pzem.energy() - pemakaianDaya) * 1500;
+    Serial.print("Nominal penggunaan: Rp ");
+    Serial.println(nominalPenggunaan);
+  
+      HTTPClient http;
+
+      http.begin("http://gregorio.neojt.com/t_pakai.php?id_kamar=" + idKamar + "&amount_rp=" + nominalPenggunaan);
+      http.addHeader("Content-Type", "application/x-www-form-urlencoded");
+
+       int httpResponseCode = http.GET();
+      
+      if (httpResponseCode>0) {
+        Serial.print("HTTP Response code: ");
+        Serial.println(httpResponseCode);
+       
+      }
+      else {
+        Serial.print("Error code: ");
+        Serial.println(httpResponseCode);
+      }
+
+      
+     // Free resources
+      http.end();
+      
+     
+
+     
+
+      
+      digitalWrite(ledBiru, LOW);
+      delay(200);
+      digitalWrite(ledBiru, HIGH);
+
+
+      pemakaianDaya = energy;
+
+  }
+
+  
+  
+}
+
+
+/* 
+ * menjalankan Output
+ */
+void runOutput() {
+
+  
+
+
+   if ( sisakWh <= 1)ledMerahBlink();
+
+
+    
+  if ( sisakWh < 0 ||  sisakWh == 0) {
+    digitalWrite(relay, HIGH);
+    digitalWrite(ledHijau, LOW);
+    ledMerahBlink();    
+    pzem.resetEnergy();
+
+
+  } else {
+
+    digitalWrite(ledHijau, HIGH); /// Led Hijau Menyala
+    digitalWrite(ledMerah, LOW);  /// Led Merah Mati
+    digitalWrite(relay, LOW);
+    digitalWrite(buzzer, LOW);
+  }
+
+
+
+}
 
 
 
