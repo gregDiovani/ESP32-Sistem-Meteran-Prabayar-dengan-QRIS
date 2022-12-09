@@ -6,11 +6,6 @@
 #include <Preferences.h>
 
 
-
-
-
-
-
 /// Wifi manager object
 
 WiFiManager wc;
@@ -365,6 +360,9 @@ void Task_2(void *parameter) {
 }
 
 
+/* 
+ * Fungsi mendapatkan balance dari server
+ */  
 void getBalancefromServer() {
 
 if ((millis() - lastTime) > timerDelay) {
@@ -406,7 +404,9 @@ if ((millis() - lastTime) > timerDelay) {
 }
 
 
-
+/* 
+ * Fungsi Konversi Balance ke nilai kWh
+ */  
 float ConvertTbalancetoKwh(String getBalance) {
 
   float kwh = getBalance.toFloat() / 1500;
@@ -414,7 +414,9 @@ float ConvertTbalancetoKwh(String getBalance) {
 }
 
 
-
+/* 
+ * Fungsi Blink LED
+ */
 void ledMerahBlink() {
 
       if (ledState == HIGH) {
