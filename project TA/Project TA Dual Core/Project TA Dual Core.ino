@@ -1,11 +1,9 @@
 #include <WiFiManager.h>
 #include <PZEM004Tv30.h>
 #include <LiquidCrystal_I2C.h>
-#include <ArduinoJson.h>
 #include <HTTPClient.h>
 #include <WiFi.h>
 #include <Preferences.h>
-#include <math.h>
 
 
 
@@ -26,20 +24,12 @@ const int ledHijau = 19;
 const int buzzer = 25;
 const int relay = 26;
 
-
-
-
-
-
-
 // LCD address and geometry and library initialization
 const byte lcdAddr = 0x27;  // Address of I2C backpack
 const byte lcdCols = 16;    // Number of character in a row
 const byte lcdRows = 2;     // Number of lines
 
-
-
-//// Preferences
+//// Preferences /// untuk menyimpan data di epprom
 Preferences preferences;
 
 
@@ -59,9 +49,11 @@ PZEM004Tv30 pzem(Serial2);
 #endif
 
 
-
+/* 
+ * Timer Untuk mengatur interval request ke server
+ */
 unsigned long lastTime = 0;
-unsigned long timerDelay = 5000;
+unsigned long timerDelay = 15000;
 
 
 /* 
@@ -83,7 +75,6 @@ float pemakaianDaya;  /// Pemakian daya untuk daya
 
 
 float voltage, current, power, energy, frequency, pf, sisakWh; /// Variable untuk pzem004t
-
 
 
 
