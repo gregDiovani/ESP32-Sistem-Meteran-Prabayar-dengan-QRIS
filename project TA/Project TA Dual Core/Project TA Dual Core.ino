@@ -72,7 +72,8 @@ float pemakaianDaya;  /// Pemakian daya untuk daya
 float voltage, current, power, energy, frequency, pf, sisakWh; /// Variable untuk pzem004t
 
 
-
+String authUsername = "Gregorio";
+String authPassword = "|AxelNuva007|";
 
 
 
@@ -191,6 +192,8 @@ if ((millis() - lastTime) > timerDelay) {
       
       // Your Domain name with URL path or IP address with path
       http.begin(serverPath.c_str());
+       String auth = base64::encode(authUsername + ":" + authPassword);
+      http.addHeader("Authorization", "Basic " + auth);
    
       
       // Send HTTP GET request
@@ -438,7 +441,3 @@ void runOutput() {
 
 
 }
-
-
-
-
