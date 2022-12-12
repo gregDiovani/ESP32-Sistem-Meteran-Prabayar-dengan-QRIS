@@ -72,8 +72,8 @@ float pemakaianDaya;  /// Pemakian daya untuk daya
 float voltage, current, power, energy, frequency, pf, sisakWh; /// Variable untuk pzem004t
 
 
-String authUsername = "Gregorio";
-String authPassword = "|AxelNuva007|";
+String authUsername = "xxx";
+String authPassword = "xxx";
 
 
 
