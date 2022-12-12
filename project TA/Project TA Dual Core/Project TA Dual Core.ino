@@ -187,10 +187,11 @@ if ((millis() - lastTime) > timerDelay) {
     if(WiFi.status()== WL_CONNECTED){
       HTTPClient http;
 
-    String serverPath = "http://gregorio.neojt.com/qris_cek_statis.php?external_id=K01";
+    String serverPath = "http://gregorio.neojt.com/qris_cek_statis.php?external_id=Kamar01";
       
       // Your Domain name with URL path or IP address with path
       http.begin(serverPath.c_str());
+   
       
       // Send HTTP GET request
       int httpResponseCode = http.GET();
